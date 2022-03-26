@@ -12,10 +12,11 @@ import typer
 async def init_models():
     async with engine.begin() as conn:
         #await conn.run_sync(Base.metadata.drop_all)
-        if (os.path.isdir("tracks")):
-            shutil.rmtree("tracks", ignore_errors=False, onerror=None)
+        #if (os.path.isdir("tracks")):
+            #shutil.rmtree("tracks", ignore_errors=False, onerror=None)
         await conn.run_sync(Base.metadata.create_all)
-        os.mkdir("tracks")
+        if not (os.path.isdir("tracks")):
+            os.mkdir("tracks")
         try:
             await conn.execute(insert(LanguageTable).values(id = 0, language="rus"))
             await conn.execute(insert(LanguageTable).values(id = 1, language="eng"))
@@ -36,7 +37,8 @@ cli = typer.Typer()
 def db_init_models():
     asyncio.run(init_models())
     print("Done")
-    uvicorn.run("main:app", port = 8000, host="0.0.0.0", reload=True)
+    #uvicorn.run("main:app", port = 8000, host="0.0.0.0", reload=True)
+    uvicorn.run("main:app", port = 8000, host="127.0.0.1", reload=True)
 
 
 

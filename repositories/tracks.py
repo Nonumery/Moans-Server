@@ -58,12 +58,19 @@ class TrackRepository:
                     ).filter(
                         TrackTable.user_id != user_id,
                         TrackTable.language_id == language_id, 
-                        TrackTable.voice == voice,
+                        #TrackTable.voice == voice, 
                         TrackTable.status == status
                     ).group_by(TrackTable.id, TrackTable.name, TrackTable.description, TrackTable.path).order_by(desc(TrackTable.created_at))
         #print(union_all(select(trackseentable.c.track_id).filter_by(user_id=user_id), select(trackcheckedtable.c.track_id).filter_by(user_id=user_id)))
         #print(s)
-        return s
+        if (int(voice.value)==int(Voice.she_he_they.value)):
+            return s
+        if (int(voice.value)<=int(Voice.they_them.value)):
+            voices = [voice, voice.she_he, voice.she_they, voice.he_they, voice.she_he_they]
+        else:
+            voices = [voice, voice.she_her, voice.he_him, voice.they_them, voice.she_he_they]
+        voices.remove(Voice(str(int(Voice.she_he_they.value) - int(voice.value) - 1)))
+        return s.filter(TrackTable.voice.in_(voices))
     
     def get_select_liked_tracks(self, user_id : int, unchecked : bool = True)->select:
         s =  select(
