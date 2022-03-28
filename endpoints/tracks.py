@@ -117,7 +117,7 @@ async def refresh_track_list(
     except(Exception):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
 
-@router.get("/track/", response_model=TrackInfo, response_model_exclude=["path", "status", "likes"])
+@router.get("/track/", response_model=TrackInfo, response_model_exclude=["path", "likes"])
 async def get_track_info(
     track_id: int,
     tracks : TrackRepository = Depends(get_track_repository),
