@@ -14,6 +14,9 @@ engine = create_async_engine(
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+tracks_id = "tracks.id"
+users_id = "users.id"
+tags_id = "tags.id"
 
 
 class Voice(str, enum.Enum):
@@ -39,21 +42,21 @@ class LanguageTable(Base):
     __table_args__ = (sqlalchemy.Index("id_language_unique", "id", "language", unique=True), )
 
 tracktagtable = Table("tracktags", Base.metadata,
-    sqlalchemy.Column("track_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("tracks.id"), nullable=False),
-    sqlalchemy.Column("tag_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("tags.id"), nullable=False),
+    sqlalchemy.Column("track_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(tracks_id), nullable=False),
+    sqlalchemy.Column("tag_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(tags_id), nullable=False),
     sqlalchemy.Index('track_tag_unique', "track_id", "tag_id", unique=True)
 )
 
 trackcheckedtable = Table("trackchecked", Base.metadata,
-    sqlalchemy.Column("track_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("tracks.id"), nullable=False),
-    sqlalchemy.Column("user_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), nullable=False),
+    sqlalchemy.Column("track_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(tracks_id), nullable=False),
+    sqlalchemy.Column("user_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(users_id), nullable=False),
     sqlalchemy.Column("liked", sqlalchemy.Boolean(), default=False, nullable=False),
     sqlalchemy.Index('track_user_unique', "track_id", "user_id", unique=True)
     )
 
 trackseentable = Table("trackseen", Base.metadata,
-    sqlalchemy.Column("track_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("tracks.id"), nullable=False),
-    sqlalchemy.Column("user_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), nullable=False),
+    sqlalchemy.Column("track_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(tracks_id), nullable=False),
+    sqlalchemy.Column("user_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(users_id), nullable=False),
     sqlalchemy.Column("liked", sqlalchemy.Boolean(), default=False, nullable=False),
     sqlalchemy.Index('track_user_seen_unique', "track_id", "user_id", unique=True)
     )
@@ -62,7 +65,7 @@ trackseentable = Table("trackseen", Base.metadata,
 class TrackTable(Base):
     __tablename__ = 'tracks'
     id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True, unique=True)
-    user_id = sqlalchemy.Column("user_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), nullable=False)
+    user_id = sqlalchemy.Column("user_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(users_id), nullable=False)
     language_id = sqlalchemy.Column("language_id", sqlalchemy.Integer, sqlalchemy.ForeignKey(LanguageTable.id), nullable=False)
     name = sqlalchemy.Column("name", sqlalchemy.String, nullable=False)
     description = sqlalchemy.Column("description", sqlalchemy.String)

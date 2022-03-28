@@ -1,6 +1,7 @@
 import os
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
+from core.errors import EMAIL_EXC, PASS_EXC
 from core.security import verify_password
 from db.tables import UserTable
 from repositories.users import UserRepository
@@ -24,7 +25,7 @@ async def create_user(
     session : AsyncSession = Depends(get_session)):
     c_user = await users.get_user_by_email(session, user.email)
     if c_user:
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Email is already used")
+        raise EMAIL_EXC
     new_user = await users.add_user(session=session, email=user.email, password=user.password)
     if new_user:
         user_folder = f"tracks/user_{new_user.id}"
@@ -38,14 +39,11 @@ async def update_user(
     users: UserRepository = Depends(get_user_repository),
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)):
-    #c_user = await users.get_user_by_id(session=session, id=id)
-    #if c_user is None or c_user.email != current_user.email:
-        #raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not found")
     c_user = await users.get_user_by_email(session, current_user.email)
     if c_user is None or not verify_password(user.password, c_user.hash_password):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wrong password")
+        raise PASS_EXC
     c_user = await users.get_user_by_email(session, user.email)
     if c_user is not None and c_user.email != current_user.email:
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Email is already used")
+        raise EMAIL_EXC
 
     return await users.update_user(session, int(current_user.id), user.email, user.new_password)

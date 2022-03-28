@@ -1,4 +1,5 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
+from core.errors import CRED_EXC
 from core.security import JWTBearer, decode_access_token
 from models.users import User
 from repositories.tracks import TrackRepository
@@ -22,16 +23,15 @@ async def get_current_user(
     session : AsyncSession = Depends(get_session),
     token: str = Depends(JWTBearer())
     ) -> User:
-    cred_exception = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Credentials are not valid")
     payload = decode_access_token(token)
     if payload is None:
-        raise cred_exception
+        raise CRED_EXC
     email: str = payload.get("sub")
     if email is None:
-        raise cred_exception
+        raise CRED_EXC
     user = await users.get_user_by_email(session, email)
     if user is None:
-        raise cred_exception
+        raise CRED_EXC
     return user
 
 def get_track_repository() -> TrackRepository:

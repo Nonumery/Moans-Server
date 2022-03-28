@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, status, UploadFile, File, Form
 from fastapi.responses import Response
-from core.config import AUDIO_FORMAT, ERROR_DETAIL, MEDIA_FORMAT
+from core.config import AUDIO_FORMAT, RECORD_ERROR_DETAIL, MEDIA_FORMAT, IMAGE_FORMAT
+from core.errors import ACCESS_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
 from db.tables import Status, Voice
 from models.trackchecked import TrackChecked
 from models.users import User
@@ -33,18 +34,14 @@ async def add_new_track(
     session : AsyncSession = Depends(get_session)
     ):
     if not await tracks.get_language(session, language_id):   
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Language doesn't exist")
+        raise LANG_EXC
     if await tracks.get_track(session, int(current_user.id), name):
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Track name isn't avaluable")
+        raise NAME_EXC
     tr = TrackIn(name=name, description=description, voice=voice, language_id=language_id)
     try:
-        print(1)
         tr = TrackIn(name=name, description=description, voice=voice, language_id=language_id)
-        print(1)
         path=""
-        print(1)
         user_folder = f"tracks/user_{current_user.id}"
-        print(1)
         tr_name = datetime.now()
         if not os.path.isdir(user_folder):
             os.mkdir(user_folder)
@@ -52,11 +49,11 @@ async def add_new_track(
             shutil.copyfileobj(record.file, buffer)
             path = f'{user_folder}/{tr_name}.mp3'
     except(Exception):
-        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT, detail=ERROR_DETAIL)
+        raise RECORD_EXC
     track = await tracks.create_new_track(session=session, user_id = int(current_user.id), path=path, tr=tr, tags_string=tag)
     if track is None:
         os.remove(path)
-        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT, detail=ERROR_DETAIL)
+        raise RECORD_EXC
     return track
 
 
@@ -74,12 +71,12 @@ async def update_current_track(
     ):
     track = await tracks.get_track_by_id(session, id)
     if track is None or track.user_id != int(current_user.id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     if not await tracks.get_language(session, language_id):   
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Language doesn't exist")
+        raise LANG_EXC
     old_track = await tracks.get_track(session, int(current_user.id), name)
     if old_track is not None and old_track.id != id: 
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Track name isn't avaluable")
+        raise NAME_EXC
     tr = TrackIn(
         name=name,
         description=description,
@@ -103,7 +100,7 @@ async def get_unchecked_tracks(
         tracks = await tracks.get_track_feed(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, limit=limit, skip=skip)
         return tracks
     except(Exception):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
 
 @router.get("/refresh")
 async def refresh_track_list(
@@ -115,7 +112,7 @@ async def refresh_track_list(
         tracks = await tracks.checks_to_views(session=session, user_id=int(current_user.id))
         return tracks
     except(Exception):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
 
 @router.get("/track/", response_model=TrackInfo, response_model_exclude=["path", "likes"])
 async def get_track_info(
@@ -125,7 +122,7 @@ async def get_track_info(
     session : AsyncSession = Depends(get_session)):
     track = await tracks.get_user_track_by_id(session=session, user_id=int(current_user.id), track_id=track_id)
     if track is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     return track
 
 
@@ -181,7 +178,6 @@ async def get_track_with(
     track = await tracks.get_track_by_id(session, track_id)
     if track is None:
         return {'Error':'Track is not found'}
-    print(track.json())
     headers = { "track":track.json(), }
     with open(track.path, "rb") as audio:
         data = audio.read()
@@ -196,7 +192,7 @@ async def get_track_audio(
     ):
     track = await tracks.get_track_by_id(session, track_id)
     if track is None: 
-        raise HTTPException(status_code=status.HTTP_306_RESERVED, detail="Track name isn't avaluable")
+        raise NAME_EXC
     with open(track.path, "rb") as audio:
         data = audio.read()
     return Response(data, media_type=MEDIA_FORMAT)#StreamingResponse
@@ -233,7 +229,7 @@ async def delete_current_track(
     ):
     track = await tracks.get_track_by_id(session=session, id=id)
     if track.user_id is None or track.user_id != int(current_user.id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     os.remove(track.path)
     return await tracks.delete_track(session=session, id=track_id)
 
@@ -247,7 +243,7 @@ async def check_track(
     ):
     result = await tracks.check_track(session=session, track_id=track_id, user_id=int(current_user.id))
     if not result:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     return result
 
 @router.patch("/set_track_status", response_model=TrackInfo, response_model_exclude=["path", "status", "voice", "language_id"])
@@ -260,9 +256,9 @@ async def set_status(
     ):
     track = await tracks.get_track_by_id(session, track_id)
     if track is None or track.user_id != int(current_user.id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     if (int(track_status.value) > int(Status.publish) or int(track.__dict__["status"]) > int(Status.publish)):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     return await tracks.update_status(session=session, id=track_id, status=track_status)
 
 @router.patch("/like")
@@ -274,13 +270,12 @@ async def like_track(
     session : AsyncSession = Depends(get_session)
     ):
     result = await tracks.like_track(session=session, track_id=track_id, user_id=int(current_user.id), liked=liked)
-    print(result)
     if not result:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access")
+        raise ACCESS_EXC
     return result
 
 @router.get("/get_logo")
 async def get_app_logo():
     with open("resources/logo.png", "rb") as logo:
         data = logo.read()
-    return Response(data, media_type="image/png")
+    return Response(data, media_type=IMAGE_FORMAT)

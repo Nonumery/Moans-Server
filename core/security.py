@@ -1,10 +1,11 @@
 import datetime
-from fastapi import Request, HTTPException, status
+from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from hashlib import algorithms_available
 from passlib.context import CryptContext
 from jose import jwt
 from core.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
+from core.errors import TOKEN_EXC
 
 pwd_context = CryptContext(schemes=["bcrypt"])
 
@@ -33,11 +34,10 @@ class JWTBearer(HTTPBearer):
     
     async def __call__(self, request: Request):
         credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
-        exp = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid auth token")
         if credentials:
             token = decode_access_token(credentials.credentials)
             if token is None:
-                raise exp
+                raise TOKEN_EXC
             return credentials.credentials
         else:
-            raise exp
+            raise TOKEN_EXC

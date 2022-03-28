@@ -1,7 +1,7 @@
 import asyncio
 import os
 import shutil
-from fastapi import FastAPI
+from fastapi import FastAPI, staticfiles
 import uvicorn
 from db.tables import Base, engine, LanguageTable
 from endpoints import users, auth, tracks
@@ -30,6 +30,21 @@ app.include_router(router=tracks.router, prefix="/tracks", tags=["tracks"])
 @app.get("/")
 def main():
     return {"status": "ok"}
+# app.mount("/tracks_", staticfiles.StaticFiles(directory="tracks"), name="tracks")
+
+# @app.get("/audios")
+
+# async def get_tracks(
+    
+#     user_id: int
+# ):
+#     out = []
+#     for filename in os.listdir(f"tracks/user_{user_id}"):
+#         out.append({
+#             "name": filename.split(".")[0],
+#             "path": f"/tracks_/user_{user_id}/" + filename
+#         })
+#     return out
 
 cli = typer.Typer()
 
@@ -37,7 +52,6 @@ cli = typer.Typer()
 def db_init_models():
     asyncio.run(init_models())
     print("Done")
-    #uvicorn.run("main:app", port = 8000, host="0.0.0.0", reload=True)
     uvicorn.run("main:app", port = 8000, host="127.0.0.1", reload=True)
 
 
