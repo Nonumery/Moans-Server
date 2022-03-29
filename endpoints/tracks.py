@@ -187,7 +187,7 @@ async def get_track_with(
 @router.get("/get_audio")
 async def get_track_audio(
     track_id : int,
-    range : Optional[str] = Header(...),
+    range : Optional[str] = Header(None),
     tracks : TrackRepository = Depends(get_track_repository),
     session : AsyncSession = Depends(get_session)
     ):
@@ -198,46 +198,26 @@ async def get_track_audio(
         filesize = str(os.stat(track.path).st_size)
         try:
             if range is None:
-                data = audio.read()
-                headers = {}
+                start = 0
+                end = int(filesize)
             else:
                 s = range.split("=")[-1].split("-")
                 start = int(s[0])
-                end = int(s[1])
-                if (start==end):
-                    start, end = 0, 1
-                audio.seek(start)
-                data = audio.read(end - start+1)
-                headers = {
-                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                if not s[1]:
+                    end = int(filesize)
+                else:
+                    end = int(s[1])
+                    if (start==end):
+                        start, end = 0, 1
+            audio.seek(start)
+            data = audio.read(end - start+1)
+            headers = {
+                'Content-Range': f'bytes={str(start)}-{str(end)}/{filesize}',
                 'Accept-Ranges': 'bytes'
-                }
-            return Response(data, headers=headers, media_type=MEDIA_FORMAT)#StreamingResponse
+                    }
+            return Response(data, status_code=206, headers=headers, media_type=MEDIA_FORMAT)#StreamingResponse
         except(Exception):
             raise ACCESS_EXC
-    
-@router.get("/get_audio_bytes")
-async def get_track_audio_bytes(
-    track_id : int,
-    start : int,
-    end : int,
-    tracks : TrackRepository = Depends(get_track_repository),
-    session : AsyncSession = Depends(get_session)
-    ):
-    track = await tracks.get_track_by_id(session, track_id)
-    with open(track.path, "rb") as audio:
-        filesize = str(os.stat(track.path).st_size)
-        if start >= end or start < 0 or end < 0 or start > int(filesize) or end > int(filesize):
-            start = 0
-            end = 0
-        audio.seek(start)
-        data = audio.read(end - start)
-        headers = {
-            'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
-            'Accept-Ranges': 'bytes'
-        }
-    return Response(data, status_code=206, headers=headers, media_type=MEDIA_FORMAT)
-
 
 @router.delete("/")
 async def delete_current_track(
