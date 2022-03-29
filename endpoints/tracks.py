@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List
-from fastapi import APIRouter, Depends, status, UploadFile, File, Form
-from fastapi.responses import Response
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Header, Request, status, UploadFile, File, Form
+from fastapi.responses import Response, StreamingResponse, FileResponse
 from core.config import AUDIO_FORMAT, RECORD_ERROR_DETAIL, MEDIA_FORMAT, IMAGE_FORMAT
 from core.errors import ACCESS_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
 from db.tables import Status, Voice
@@ -187,6 +187,7 @@ async def get_track_with(
 @router.get("/get_audio")
 async def get_track_audio(
     track_id : int,
+    range : Optional[str] = Header(...),
     tracks : TrackRepository = Depends(get_track_repository),
     session : AsyncSession = Depends(get_session)
     ):
@@ -194,8 +195,26 @@ async def get_track_audio(
     if track is None: 
         raise NAME_EXC
     with open(track.path, "rb") as audio:
-        data = audio.read()
-    return Response(data, media_type=MEDIA_FORMAT)#StreamingResponse
+        filesize = str(os.stat(track.path).st_size)
+        try:
+            if range is None:
+                data = audio.read()
+                headers = {}
+            else:
+                s = range.split("=")[-1].split("-")
+                start = int(s[0])
+                end = int(s[1])
+                if (start==end):
+                    start, end = 0, 1
+                audio.seek(start)
+                data = audio.read(end - start+1)
+                headers = {
+                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                'Accept-Ranges': 'bytes'
+                }
+            return Response(data, headers=headers, media_type=MEDIA_FORMAT)#StreamingResponse
+        except(Exception):
+            raise ACCESS_EXC
     
 @router.get("/get_audio_bytes")
 async def get_track_audio_bytes(
