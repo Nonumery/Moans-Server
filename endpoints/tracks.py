@@ -136,6 +136,14 @@ async def get_user_tracks(
     
     return await tracks.get_user_tracks(session=session, user_id=int(current_user.id), limit=limit, skip=skip)
 
+@router.get("/track", response_model=TrackInfo, response_model_exclude=["path", "status", "voice", "language_id"])
+async def get_track(
+    id : int,
+    tracks : TrackRepository = Depends(get_track_repository),
+    current_user: User = Depends(get_current_user),
+    session : AsyncSession = Depends(get_session)):
+    return await tracks.get_track_info_by_id(session=session, id=id)
+
 
 @router.get("/seen", response_model=List[TrackInfo], response_model_exclude=["path", "status", "voice", "language_id"])
 async def get_checked_tracks(
@@ -212,7 +220,7 @@ async def get_track_audio(
             audio.seek(start)
             data = audio.read(end - start+1)
             headers = {
-                'Content-Range': f'bytes={str(start)}-{str(end)}/{filesize}',
+                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
                 'Accept-Ranges': 'bytes'
                     }
             return Response(data, status_code=206, headers=headers, media_type=MEDIA_FORMAT)#StreamingResponse

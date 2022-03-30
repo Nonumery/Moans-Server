@@ -81,6 +81,17 @@ class TrackRepository:
         track_d["likes"] = likes
         return TrackInfo.parse_obj(track_d)
     
+    async def get_track_info_by_id(self, session : AsyncSession, id: int) -> Optional[TrackInfo]:
+        query = select(TrackTable).options(selectinload(TrackTable.tags)).filter_by(id=id)
+        track = (await session.execute(query)).scalar_one()
+        track_d = track.__dict__.copy()
+        track_d["tags"] = " ".join(t.__dict__["tag"] for t in track.tags)
+        q = select(func.count()).select_from(select(trackcheckedtable).union_all(select(trackseentable).where(~exists(select(trackcheckedtable).filter_by(track_id = trackseentable.c.track_id,user_id = trackseentable.c.user_id))
+                       ))).filter_by(liked = True, track_id = track.id)
+        likes = (await session.execute(q)).scalar_one()
+        track_d["likes"] = likes
+        return TrackInfo.parse_obj(track_d)
+    
     #метод для получения списка языков
     async def all_langs(self, session: AsyncSession, limit: int = 10, skip: int = 0) -> List[Language]:
         result = await session.execute(select(LanguageTable).limit(limit).offset(skip))
