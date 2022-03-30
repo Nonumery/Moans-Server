@@ -65,12 +65,14 @@ async def recover_user(
 
 
 @router.get("/recovery/{email}/{token}")
-async def recover_user(
+async def recover_pass(
     email: str,
     token: str,
     users: UserRepository = Depends(get_user_repository),
     session : AsyncSession = Depends(get_session)):
-    user : User = get_current_user(users, session, token)
+    user : User = await get_current_user(users, session, token)
     if user.email == email:
-        new_password = secrets.token_urlsafe(32)
-        users.update_user(session, int(user.id), user.email, new_password)
+        new_password = secrets.token_urlsafe(10)
+        await users.update_user(session, int(user.id), user.email, new_password)
+        text = f'New password: {new_password}'
+        password_recovery(to=email, text=text)
