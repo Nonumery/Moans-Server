@@ -311,7 +311,7 @@ class TrackRepository:
     
     #метод для получения треков по id пользователя
     async def get_user_tracks(self, session: AsyncSession, user_id: int, limit: int = 10, skip : int = 0) -> List[UserTrack]: 
-        tracks = await session.execute(self.get_select_user_tracks(user_id=user_id))
+        tracks = await session.execute(self.get_select_user_tracks(user_id=user_id).limit(limit).offset(skip))
         track_list = [{**(UserTrack.parse_obj(track)).dict()} for track in tracks]
         return track_list
     
