@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 
-TOKEN_EXC = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid auth token")
+TOKEN_EXC = HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Invalid auth token")
 AUTH_EXC = HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
 CRED_EXC = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Credentials are not valid")
 LANG_EXC = HTTPException(status_code=status.HTTP_306_RESERVED, detail="Language doesn't exist")
