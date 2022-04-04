@@ -1,15 +1,14 @@
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Header, Request, status, UploadFile, File, Form
-from fastapi.responses import Response, StreamingResponse, FileResponse
-from core.config import AUDIO_FORMAT, RECORD_ERROR_DETAIL, MEDIA_FORMAT, IMAGE_FORMAT
-from core.errors import ACCESS_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
+from fastapi import APIRouter, Depends, Header, status, UploadFile, File, Form
+from fastapi.responses import Response
+from core.config import AUDIO_FORMAT, MEDIA_FORMAT, IMAGE_FORMAT
+from core.errors import ACCESS_EXC, CONFIRM_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
 from db.tables import Status, Voice
-from models.trackchecked import TrackChecked
 from models.users import User
 from repositories.tracks import TrackRepository
 from .depends import get_current_user, get_session, get_track_repository, get_user_repository
-from models.tracks import Language, Track, TrackIn, TrackInfo, UserTrack
+from models.tracks import Language, TrackIn, TrackInfo, UserTrack
 from sqlalchemy.ext.asyncio import AsyncSession
 import shutil
 import os
@@ -33,6 +32,8 @@ async def add_new_track(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     if not await tracks.get_language(session, language_id):   
         raise LANG_EXC
     if await tracks.get_track(session, int(current_user.id), name):
@@ -45,9 +46,9 @@ async def add_new_track(
         tr_name = datetime.now()
         if not os.path.isdir(user_folder):
             os.mkdir(user_folder)
-        with open(f'{user_folder}/{tr_name}.mp3', "wb") as buffer:
+        with open(f'{user_folder}/{tr_name}.{AUDIO_FORMAT}', "wb") as buffer:
             shutil.copyfileobj(record.file, buffer)
-            path = f'{user_folder}/{tr_name}.mp3'
+            path = f'{user_folder}/{tr_name}.{AUDIO_FORMAT}'
     except(Exception):
         raise RECORD_EXC
     track = await tracks.create_new_track(session=session, user_id = int(current_user.id), path=path, tr=tr, tags_string=tag)
@@ -69,6 +70,8 @@ async def update_current_track(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     track = await tracks.get_track_by_id(session, id)
     if track is None or track.user_id != int(current_user.id):
         raise ACCESS_EXC
@@ -96,6 +99,8 @@ async def get_unchecked_tracks(
     session : AsyncSession = Depends(get_session),
     limit : int = 10,
     skip: int = 0):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     try:
         tracks = await tracks.get_track_feed(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, limit=limit, skip=skip)
         return tracks
@@ -108,6 +113,8 @@ async def refresh_track_list(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     try:
         tracks = await tracks.checks_to_views(session=session, user_id=int(current_user.id))
         return tracks
@@ -120,6 +127,8 @@ async def get_track_info(
     tracks : TrackRepository = Depends(get_track_repository),
     current_user : User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     track = await tracks.get_user_track_by_id(session=session, user_id=int(current_user.id), track_id=track_id)
     if track is None:
         raise ACCESS_EXC
@@ -133,7 +142,8 @@ async def get_user_tracks(
     session : AsyncSession = Depends(get_session),
     limit : int = 10,
     skip: int = 0):
-    
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     return await tracks.get_user_tracks(session=session, user_id=int(current_user.id), limit=limit, skip=skip)
 
 @router.get("/track", response_model=TrackInfo, response_model_exclude=["path", "status", "voice", "language_id"])
@@ -142,6 +152,8 @@ async def get_track(
     tracks : TrackRepository = Depends(get_track_repository),
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     return await tracks.get_track_info_by_id(session=session, id=id)
 
 
@@ -154,6 +166,8 @@ async def get_checked_tracks(
     session : AsyncSession = Depends(get_session),
     limit : int = 10,
     skip: int = 0):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     return await tracks.get_track_seen(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, limit=limit, skip=skip)
 
 @router.get("/liked", response_model=List[TrackInfo], response_model_exclude=["path", "status", "voice", "language_id"])
@@ -163,6 +177,8 @@ async def get_liked_tracks(
     session : AsyncSession = Depends(get_session),
     limit : int = 10,
     skip: int = 0):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     return await tracks.get_track_liked(session=session, user_id=int(current_user.id), limit=limit, skip=skip)
 
 @router.get("/with_tags", response_model=List[TrackInfo], response_model_exclude=["path", "status", "voice", "language_id"])
@@ -175,6 +191,8 @@ async def get_tracks_with_tags(
     session : AsyncSession = Depends(get_session),
     limit : int = 10,
     skip: int = 0):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     return await tracks.get_track_feed_with_tags(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, tags=tags, limit=limit, skip=skip)
 
 @router.get("/with_audio")
@@ -234,6 +252,8 @@ async def delete_current_track(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     track = await tracks.get_track_by_id(session=session, id=id)
     if track.user_id is None or track.user_id != int(current_user.id):
         raise ACCESS_EXC
@@ -248,6 +268,8 @@ async def check_track(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     result = await tracks.check_track(session=session, track_id=track_id, user_id=int(current_user.id))
     if not result:
         raise ACCESS_EXC
@@ -261,6 +283,8 @@ async def set_status(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     track = await tracks.get_track_by_id(session, track_id)
     if track is None or track.user_id != int(current_user.id):
         raise ACCESS_EXC
@@ -276,6 +300,8 @@ async def like_track(
     current_user: User = Depends(get_current_user),
     session : AsyncSession = Depends(get_session)
     ):
+    if current_user.email_confirm == False:
+        raise CONFIRM_EXC
     result = await tracks.like_track(session=session, track_id=track_id, user_id=int(current_user.id), liked=liked)
     if not result:
         raise ACCESS_EXC

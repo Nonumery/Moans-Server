@@ -1,4 +1,4 @@
-from core.errors import AUTH_EXC
+from core.errors import AUTH_EXC, CONFIRM_EXC
 from endpoints.depends import get_session, get_user_repository
 from models.token import Token, Login
 from fastapi import APIRouter, Depends
@@ -16,6 +16,8 @@ async def login(
     user = await users.get_user_by_email(session, login.email)
     if user is None or not verify_password(login.password, user.hash_password):
         raise AUTH_EXC
+    if user.email_confirm == False:
+        raise CONFIRM_EXC
     return Token(
         access_token=create_access_token({"sub": user.email}),
         token_type="Bearer"

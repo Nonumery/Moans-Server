@@ -9,3 +9,4 @@ RECORD_EXC = HTTPException(status_code=status.HTTP_204_NO_CONTENT, detail="Recor
 ACCESS_EXC = HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="No access")
 EMAIL_EXC = HTTPException(status_code=status.HTTP_306_RESERVED, detail="Email is already used")
 PASS_EXC = HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Wrong password")
+CONFIRM_EXC = HTTPException(status_code=status.HTTP_426_UPGRADE_REQUIRED, detail="Email is not confirmed")

@@ -7,6 +7,8 @@ class User(BaseModel):
     id : Optional[str] = None
     email: EmailStr
     hash_password: str
+    update_token: str
+    email_confirm: bool
     created_at: datetime.datetime
     updated_at: datetime.datetime
     

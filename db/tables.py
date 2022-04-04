@@ -1,4 +1,5 @@
 from email.policy import default
+from http import server
 import sqlalchemy
 import enum
 from sqlalchemy import Enum, Table
@@ -84,6 +85,8 @@ class UserTable(Base):
     id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True, unique=True)
     email = sqlalchemy.Column("email", sqlalchemy.String, primary_key=True, unique=True, nullable=False)
     hash_password = sqlalchemy.Column("hash_password", sqlalchemy.String, nullable=False)
+    update_token = sqlalchemy.Column("update_token", sqlalchemy.String, nullable=False)
+    email_confirm = sqlalchemy.Column("email_confirm", sqlalchemy.Boolean, default=False, nullable=False)
     created_at = sqlalchemy.Column("created_at", sqlalchemy.DateTime, server_default=sqlalchemy.func.now())
     updated_at = sqlalchemy.Column("updated_at", sqlalchemy.DateTime, server_default=sqlalchemy.func.now(), onupdate=sqlalchemy.func.now())
     tracks = sqlalchemy.orm.relationship(TrackTable, backref='owner')

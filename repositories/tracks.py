@@ -177,7 +177,7 @@ class TrackRepository:
         like_query = update(trackcheckedtable).values(liked=liked).where((trackcheckedtable.c.track_id==track_id)&(trackcheckedtable.c.user_id==user_id))
         try:
             if not (await session.execute(check_query)).scalars().first():
-                await self.check_track(session=session, track_id=track_id, user_id=user_id, liked=liked)
+                return await self.check_track(session=session, track_id=track_id, user_id=user_id, liked=liked)
             else:
                 await session.execute(like_query)
             return True

@@ -19,15 +19,30 @@ class UserRepository():
             return None
         return User.parse_obj({**user.__dict__})
     
-    async def add_user(self, session: AsyncSession, email:str, password:str) -> User:
+    async def add_user(self, session: AsyncSession, email:str, password:str, update_token:str, email_confirm:bool = False) -> User:
         user = UserTable(
             email = email,
-            hash_password=hash_password(password)
+            hash_password=hash_password(password),
+            update_token=update_token,
+            email_confirm=email_confirm
         )
         session.add(user)
         result = await session.execute(select(UserTable).where(UserTable.email==user.email))
         user = result.scalars().first()
         #await session.commit()
+        return User.parse_obj({**user.__dict__})
+
+    async def change_token(self, session: AsyncSession, id: int, update_token: str) -> User:
+        query = select(UserTable).filter_by(id=id)
+        user = (await session.execute(query)).scalar_one()
+        user.update_token = update_token
+        return User.parse_obj({**user.__dict__})
+
+    async def confirm_email(self, session: AsyncSession, id: int, update_token: str, email_confirm : bool = True) -> User:
+        query = select(UserTable).filter_by(id=id)
+        user = (await session.execute(query)).scalar_one()
+        user.email_confirm = email_confirm
+        user.update_token = update_token
         return User.parse_obj({**user.__dict__})
     
     async def update_user(self, session: AsyncSession, id: int, email : str, password : str) -> User:
