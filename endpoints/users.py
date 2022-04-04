@@ -1,15 +1,16 @@
+import hashlib
 import os
 import secrets
 from typing import List
 from fastapi import APIRouter, Depends
 from core.config import MAIN_URL
 from core.errors import EMAIL_EXC, PASS_EXC
-from core.security import create_access_token, verify_password
-from core.send import password_recovery
+from core.security import create_access_token, hash_password, verify_password
+from core.send import confirm_email, password_recovery
 from db.tables import UserTable
 from models.token import Token
 from repositories.users import UserRepository
-from .depends import get_current_user, get_session, get_user_repository
+from .depends import get_current_user, get_session, get_user_email, get_user_repository
 from models.users import User, UserChange, UserIn
 from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter()  
@@ -22,7 +23,7 @@ async def read_users(
     skip: int = 0):
     return await users.get_users(session=session, limit=limit, skip=skip)
 
-@router.post("/", response_model=User, response_model_exclude=["hash_password"])
+@router.post("/autoregistration", response_model=User, response_model_exclude=["hash_password"])
 async def create_user(
     user: UserIn,
     users: UserRepository = Depends(get_user_repository),
@@ -62,6 +63,8 @@ async def recover_user(
         token = create_access_token({"sub": user.email})
         text = f'To recover your password, follow the link: {MAIN_URL}/users/recovery/{email}/{token}'
         password_recovery(to=email, text=text)
+    else:
+        raise 
 
 
 @router.get("/recovery/{email}/{token}")
@@ -73,6 +76,35 @@ async def recover_pass(
     user : User = await get_current_user(users, session, token)
     if user.email == email:
         new_password = secrets.token_urlsafe(10)
-        await users.update_user(session, int(user.id), user.email, new_password)
+        new_password = new_password[:9]
+        await users.update_user(session, int(user.id), user.email, hashlib.sha256(new_password.encode('utf-8')).hexdigest())
         text = f'New password: {new_password}'
         password_recovery(to=email, text=text)
+        
+@router.post("/")
+async def create_new_user(
+    user: UserIn,
+    users: UserRepository = Depends(get_user_repository),
+    session : AsyncSession = Depends(get_session)):
+    c_user = await users.get_user_by_email(session, user.email)
+    if c_user:
+        raise EMAIL_EXC
+    token = create_access_token({"sub": user.email})
+    text = f'To confirm email, follow the link: {MAIN_URL}/users/registration/{user.email}/{user.password}/{token}'
+    confirm_email(to=user.email, text=text)
+
+@router.get("/registration/{email}/{password}/{token}", response_model=User, response_model_exclude=["hash_password"])
+async def confirm_user_email(
+    email: str,
+    password : str,
+    token: str,
+    users: UserRepository = Depends(get_user_repository),
+    session : AsyncSession = Depends(get_session)):
+    n_email = get_user_email(token)
+    if n_email == email:
+        new_user = await users.add_user(session=session, email=email, password=password)
+        if new_user:
+            user_folder = f"tracks/user_{new_user.id}"
+            if not os.path.isdir(user_folder):
+                os.mkdir(user_folder)
+            return new_user

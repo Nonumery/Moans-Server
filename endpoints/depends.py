@@ -34,6 +34,18 @@ async def get_current_user(
         raise CRED_EXC
     return user
 
+
+def get_user_email(
+    token: str = Depends(JWTBearer())
+    ) -> str:
+    payload = decode_access_token(token)
+    if payload is None:
+        raise CRED_EXC
+    email: str = payload.get("sub")
+    if email is None:
+        raise CRED_EXC
+    return email
+
 def get_track_repository() -> TrackRepository:
     return TrackRepository()
 

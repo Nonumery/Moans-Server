@@ -1,10 +1,11 @@
 import asyncio
+import json
 import os
 import shutil
-from fastapi import FastAPI, staticfiles
+from fastapi import FastAPI, Request, Response, staticfiles, status
 import uvicorn
 from db.tables import Base, engine, LanguageTable
-from endpoints import users, auth, tracks
+from endpoints import users, auth, tracks, wellknown
 from sqlalchemy import insert
 import asyncio
 import typer
@@ -27,6 +28,7 @@ app = FastAPI(title="Moans Server")
 app.include_router(router=users.router, prefix="/users", tags=["users"])
 app.include_router(router=auth.router, prefix="/auth", tags=["auth"])
 app.include_router(router=tracks.router, prefix="/tracks", tags=["tracks"])
+app.include_router(router=wellknown.router, prefix="/.well-known", tags=["well-known"])
 @app.get("/")
 def main():
     return {"status": "ok"}
