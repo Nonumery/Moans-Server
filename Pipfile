@@ -19,6 +19,10 @@ docker-compose = "*"
 typer = "*"
 pytest = "*"
 pytest-asyncio = "*"
+httpx = "*"
+google-api-python-client = "*"
+google-auth-httplib2 = "*"
+google-auth-oauthlib = "*"
 
 [dev-packages]
 

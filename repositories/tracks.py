@@ -257,7 +257,7 @@ class TrackRepository:
     
     
     #метод для получения списка треков по предпочтениям
-    async def get_track_feed(self, session: AsyncSession, user_id: int, language_id : int, voice : Voice, unseen: bool = True, limit: int = 10, skip : int = 0) -> List[TrackInfo]: 
+    async def get_track_feed(self, session: AsyncSession, user_id: int, language_id : int, voice : Voice, limit: int = 10, skip : int = 0) -> List[TrackInfo]: 
         feed_query = union_all(self.get_select_track(user_id=user_id, language_id=language_id, voice=voice, status=Status.publish, unseen = True, unchecked=True), 
                                self.get_select_track(user_id=user_id, language_id=language_id, voice=voice, status=Status.publish, unseen = False, unchecked=True)).limit(limit).offset(skip)
         tracks = (await session.execute(feed_query))
@@ -268,7 +268,7 @@ class TrackRepository:
         return track_list
 
     #метод для получения списка треков по предпочтениям
-    async def get_track_seen(self, session: AsyncSession, user_id: int, language_id : int, voice : Voice, unseen: bool = True, limit: int = 10, skip : int = 0) -> List[TrackInfo]: 
+    async def get_track_seen(self, session: AsyncSession, user_id: int, language_id : int, voice : Voice, limit: int = 10, skip : int = 0) -> List[TrackInfo]: 
         seen_query = union_all(self.get_select_track(user_id=user_id, language_id=language_id, voice=voice, status=Status.publish, unseen = False, unchecked=True), 
                                self.get_select_track(user_id=user_id, language_id=language_id, voice=voice, status=Status.publish, unseen = False, unchecked=False)).limit(limit).offset(skip)
         tracks = (await session.execute(seen_query))
@@ -295,7 +295,7 @@ class TrackRepository:
     
     
     #метод для получения списка треков по предпочтениям и по тегам
-    async def get_track_feed_with_tags(self, session : AsyncSession, user_id: int, language_id : int, voice : Voice, tags : str, unseen: bool = True, limit: int = 10, skip : int = 0) -> List[TrackInfo]: 
+    async def get_track_feed_with_tags(self, session : AsyncSession, user_id: int, language_id : int, voice : Voice, tags : str, limit: int = 10, skip : int = 0) -> List[TrackInfo]: 
         tracks_query = union_all(self.get_select_track(user_id=user_id, language_id=language_id, voice=voice, status=Status.publish, unseen = True, unchecked=True), 
                                self.get_select_track(user_id=user_id, language_id=language_id, voice=voice, status=Status.publish, unseen = False, unchecked=True))
         tr = select(tracks_query.c.id, 

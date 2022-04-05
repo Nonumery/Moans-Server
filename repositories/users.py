@@ -59,5 +59,11 @@ class UserRepository():
             return None
         return User.parse_obj({**user.__dict__})
     
-    
+    async def delete_user(self, session : AsyncSession, id : int): 
+        try:
+            result = (await session.execute(select(UserTable).where(UserTable.id==id))).scalars().first()
+            await session.delete(result)
+            return True
+        except(Exception):
+            return False
     

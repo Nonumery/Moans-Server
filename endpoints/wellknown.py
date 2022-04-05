@@ -6,8 +6,8 @@ from .depends import get_current_user
 router = APIRouter()
 
 assetlinks = ""
-@router.get("/assetlinks", response_model=list)
-def get_assetlinks(current_user : User = Depends(get_current_user)):
+@router.get("/assetlinks.json", response_model=list)
+def get_assetlinks():
     with open("./.well-known/assetlinks.json", "rb") as assets:
         if (assets != None):
             assetlinks = json.load(assets)

@@ -1,9 +1,11 @@
 import hashlib
+import json
 import os
 import secrets
+import shutil
 from typing import List
-from fastapi import APIRouter, Depends
-from core.config import MAIN_URL
+from fastapi import APIRouter, Depends, Request
+from core.config import CLIENT_ID, MAIN_URL
 from core.errors import ACCESS_EXC, AUTH_EXC, CONFIRM_EXC, EMAIL_EXC, PASS_EXC, TOKEN_EXC
 from core.security import create_access_token, verify_password
 from core.send import confirm_email, password_recovery
@@ -20,22 +22,6 @@ async def read_users(
     limit: int = 10, 
     skip: int = 0):
     return await users.get_users(session=session, limit=limit, skip=skip)
-
-@router.post("/autoregistration", response_model=User, response_model_exclude=["hash_password", "update_token"])
-async def create_user(
-    user: UserIn,
-    users: UserRepository = Depends(get_user_repository),
-    session : AsyncSession = Depends(get_session)):
-    c_user = await users.get_user_by_email(session, user.email)
-    if c_user:
-        raise EMAIL_EXC
-    token = create_access_token({"sub": user.email})
-    new_user = await users.add_user(session=session, email=user.email, password=user.password, update_token=token, email_confirm=True)
-    if new_user:
-        user_folder = f"tracks/user_{new_user.id}"
-        if not os.path.isdir(user_folder):
-            os.mkdir(user_folder)
-    return new_user
 
 @router.post("/")
 async def create_new_user(
@@ -127,3 +113,21 @@ async def recover_pass(
         password_recovery(to=email, text=text)
     else:
         raise TOKEN_EXC
+
+# @router.delete("/")
+
+# async def delete_current_user(
+    
+#     user_id:int,
+#     users : UserRepository = Depends(get_user_repository),
+#     session : AsyncSession = Depends(get_session)
+#     ):
+#     user = await users.get_user_by_id(session=session, id=user_id)
+#     if user.id is None:
+#         raise ACCESS_EXC
+#     user = await users.delete_user(session=session, id=user_id)
+#     if user:
+#         user_folder = f"tracks/user_{user_id}"
+#         if os.path.isdir(user_folder):
+#             shutil.rmtree(user_folder, ignore_errors=False, onerror=None)
+#     return user

@@ -1,2 +1,12 @@
 .pytest_cashe
 tracks
+activate.bat
+cm.bat
+config.yaml
+get-pip.py
+install.bat
+intall_.bat
+main.bat
+__pycache__
+credentials.json
+token_gmail_v1.pickle

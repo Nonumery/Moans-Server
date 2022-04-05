@@ -2,13 +2,20 @@ import asyncio
 import json
 import os
 import shutil
-from fastapi import FastAPI, Request, Response, staticfiles, status
+from fastapi import Depends, FastAPI, Request, Response, staticfiles, status
+from fastapi.responses import RedirectResponse, HTMLResponse
+from httpcore import URL
+from pytest import Session
 import uvicorn
+from core.config import INSTALL_APP
 from db.tables import Base, engine, LanguageTable
 from endpoints import users, auth, tracks, wellknown
 from sqlalchemy import insert
 import asyncio
 import typer
+from endpoints.depends import get_session, get_track_repository
+
+from repositories.tracks import TrackRepository
 
 async def init_models():
     async with engine.begin() as conn:
@@ -28,7 +35,7 @@ app = FastAPI(title="Moans Server")
 app.include_router(router=users.router, prefix="/users", tags=["users"])
 app.include_router(router=auth.router, prefix="/auth", tags=["auth"])
 app.include_router(router=tracks.router, prefix="/tracks", tags=["tracks"])
-app.include_router(router=wellknown.router, prefix="/.well-known", tags=["well-known"])
+#app.include_router(router=wellknown.router, prefix="/.well-known", tags=["well-known"])
 @app.get("/")
 def main():
     return {"status": "ok"}

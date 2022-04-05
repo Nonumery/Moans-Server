@@ -1,17 +1,23 @@
-# Import smtplib for the actual sending function
+from core.config import EMAIL_PASS, NOREPLY_EMAIL
+from core.gmail import Create_Service
+import base64
 from email.mime.multipart import MIMEMultipart
-import smtplib
-
-# Import the email modules we'll need
 from email.mime.text import MIMEText
 
-from core.config import EMAIL_PASS, NOREPLY_EMAIL
+
+
+CLIENT_SECRET_FILE = 'core/credentials.json'
+API_NAME = 'gmail'
+API_VERSION = 'v1'
+SCOPES = ['https://mail.google.com/']
+
+service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+
 
 def confirm_email(to : str, text : str):
     
     sender_address = NOREPLY_EMAIL
-    sender_pass = EMAIL_PASS
-    receiver_address = to
+    receiver_address = NOREPLY_EMAIL#to
     subject = 'Confirm Email Address'
     # Create a text/plain message
     message = MIMEMultipart()
@@ -19,17 +25,16 @@ def confirm_email(to : str, text : str):
     message['From'] = sender_address
     message['To'] = receiver_address
     message.attach(MIMEText(f'This is authomatic message for registration. \n {text}'))
-    s = smtplib.SMTP('smtp.gmail.com', 587)
-    s.starttls()
-    s.login(sender_address, sender_pass) #login with mail_id and password
-    n_text = message.as_string()
-    s.sendmail(sender_address, receiver_address, n_text)
-    s.quit()
+    raw_string = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    service.users().messages().send(userId="me", body={'raw': raw_string}).execute()
+    
+    
+    
+    
 
 def password_recovery(to : str, text : str):
     
     sender_address = NOREPLY_EMAIL
-    sender_pass = EMAIL_PASS
     receiver_address = to
     subject = 'Password Recovery'
     # Create a text/plain message
@@ -38,9 +43,21 @@ def password_recovery(to : str, text : str):
     message['From'] = sender_address
     message['To'] = receiver_address
     message.attach(MIMEText(f'This is authomatic message for password recovery. \n {text}'))
-    s = smtplib.SMTP('smtp.gmail.com', 587)
-    s.starttls()
-    s.login(sender_address, sender_pass) #login with mail_id and password
-    text = message.as_string()
-    s.sendmail(sender_address, receiver_address, text)
-    s.quit()
+    raw_string = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+    
+    
+def get_html(platform_os:bool, id:int, name:str):
+    a_href = f"intent://open/{id}#Intent;scheme=moans;package=com.example.moans;end"
+    if platform_os:
+        a_href = f"moans://open/{id}"
+    return f"""<!DOCTYPE html>
+<html>
+<h3>{name}</h3>
+    <div>
+        <button style="width:200px; height:200px">
+            <a href={a_href}> Open track </a>
+        </button>
+    </div>
+</html>
+    """

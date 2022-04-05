@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Header, status, UploadFile, File, Form
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, Header, Request, status, UploadFile, File, Form
+from fastapi.responses import Response, HTMLResponse
+from httpx import URL
 from core.config import AUDIO_FORMAT, MEDIA_FORMAT, IMAGE_FORMAT
 from core.errors import ACCESS_EXC, CONFIRM_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
+from core.send import get_html
 from db.tables import Status, Voice
 from models.users import User
 from repositories.tracks import TrackRepository
@@ -254,7 +256,7 @@ async def delete_current_track(
     ):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
-    track = await tracks.get_track_by_id(session=session, id=id)
+    track = await tracks.get_track_by_id(session=session, id=track_id)
     if track.user_id is None or track.user_id != int(current_user.id):
         raise ACCESS_EXC
     os.remove(track.path)
@@ -302,6 +304,8 @@ async def like_track(
     ):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
+    if (await tracks.get_user(session, id=track_id)) == int(current_user.id):
+        raise ACCESS_EXC
     result = await tracks.like_track(session=session, track_id=track_id, user_id=int(current_user.id), liked=liked)
     if not result:
         raise ACCESS_EXC
@@ -312,3 +316,11 @@ async def get_app_logo():
     with open("resources/logo.png", "rb") as logo:
         data = logo.read()
     return Response(data, media_type=IMAGE_FORMAT)
+    
+@router.get("/track_{id}")
+async def get_track_or_install(id : int, request: Request, tracks : TrackRepository = Depends(get_track_repository), session : AsyncSession = Depends(get_session)):
+    d = request.headers['User-Agent']
+    name = (await tracks.get_track_info_by_id(session, id)).name
+    ios = "iPhone OS" in d
+    content = get_html(ios, id, name)
+    return HTMLResponse(content=content, status_code=200)
