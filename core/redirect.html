@@ -1,8 +1,60 @@
-<!DOCTYPE html>
-<html>
-    <div>
-        <button style="width:200px; height:200px">
-            <a href="intent://scan/#Intent;scheme=moans;package=com.example.moans;end"> Open track </a>
-        </button>
-    </div>
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">   
+        <title>Тег DIV, атрибут align</title>
+        <style>
+            html, body {
+                height: 100%;
+                width: 100%;
+                color: purple;
+                font-style: italic;
+                font-weight: bolder;
+                background-color: black;
+              }
+            .h {
+                display: block;
+                text-align: center;
+                justify-content: space-around;
+            }
+            .el {
+                display: flex;
+                height:inherit;
+                align-items: center;
+                justify-content: space-around;
+              }
+              button{
+                display: table-cell;
+                height: 100px;
+                width: 200px;
+                background-color: transparent;
+              }
+              a {
+                height: inherit;
+                text-align: center;
+                text-decoration: auto;
+                color: purple;
+                font-size: xx-large;
+                font-family: ui-monospace;
+                font-style: italic;
+                font-weight: bolder;
+              }
+        </style>
+    </head>
+    <body id="b">
+        
+        <div class="el">
+            <div>
+                <h1 id="name" class="h">Name</h1>
+                <h2 id="desc" class="h">Description</h2>
+                <h3 id="tags" class="h">Tags</h3>
+                <button>
+                    <a  href="intent://scan/#Intent;scheme=moans;package=com.example.moans;end">
+                        <div class="el">Open track</div>
+                    </a>
+                </button>
+            </div>
+
+        </div>
+    </body>
 </html>

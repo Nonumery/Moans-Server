@@ -320,7 +320,7 @@ async def get_app_logo():
 @router.get("/track_{id}")
 async def get_track_or_install(id : int, request: Request, tracks : TrackRepository = Depends(get_track_repository), session : AsyncSession = Depends(get_session)):
     d = request.headers['User-Agent']
-    name = (await tracks.get_track_info_by_id(session, id)).name
+    track = await tracks.get_track_info_by_id(session, id)
     ios = "iPhone OS" in d
-    content = get_html(ios, id, name)
+    content = get_html(ios, id, track.name, track.description, track.tags)
     return HTMLResponse(content=content, status_code=200)

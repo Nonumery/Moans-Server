@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1c133154da1766f6fb8071fd1aec4a9596bd7b610dae9bd330e64ebffdd38337"
+            "sha256": "58c5da03b236dc0b2f4d80346bb74d5981f26b8b39893eae3b959a8b6b106d96"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -87,6 +87,21 @@
             ],
             "index": "pypi",
             "version": "==3.2.0"
+        },
+        "beautifulsoup4": {
+            "hashes": [
+                "sha256:9a315ce70049920ea4572a4055bc4bd700c940521d36fc858205ad4fcde149bf",
+                "sha256:c23ad23c521d818955a4151a67d81580319d4bf548d3d49f4223ae041ff98891"
+            ],
+            "markers": "python_version >= '3.1'",
+            "version": "==4.10.0"
+        },
+        "bs4": {
+            "hashes": [
+                "sha256:36ecea1fd7cc5c0c6e4a1ff075df26d50da647b75376626cc186e2212886dd3a"
+            ],
+            "index": "pypi",
+            "version": "==0.0.1"
         },
         "cachetools": {
             "hashes": [
@@ -224,7 +239,7 @@
                 "sha256:0f7569a4a6ff151958b64304071d370daa3243d15941a7beedf0c9fe5105603e",
                 "sha256:a851e51367fb93e9e1361732c1d60dab63eff98712e503ea7d92e6eccb109b4f"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4'",
+            "markers": "python_version >= '3.6' and python_version < '4.0'",
             "version": "==2.2.1"
         },
         "docker": {
@@ -291,11 +306,11 @@
         },
         "google-api-python-client": {
             "hashes": [
-                "sha256:303f5e7005b26e5ca4d2f04489545cdc482ca558e8932e528217e11127c17cd8",
-                "sha256:7bf58b665b635d06adb47797a9a4f73482e739e02ed036cd960dc7c183361f67"
+                "sha256:a06b9621de90623ec2d66389a3615ca3c260849de622112868dd79109eed67b1",
+                "sha256:ccd16b3aa92070d3777c4b188669820aacdd70695a87cfc8dbb330f6be9578f7"
             ],
             "index": "pypi",
-            "version": "==2.42.0"
+            "version": "==2.43.0"
         },
         "google-auth": {
             "hashes": [
@@ -765,7 +780,7 @@
                 "sha256:5c6bd9dc7a543b7fe4304a631f8a8a3b674e2bbfc49c2ae96200cdbe55df6b17",
                 "sha256:95c5d300c4e879ee69708c428ba566c59478fd653cc3a22243eeb8ed846950bb"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4'",
+            "markers": "python_version >= '3.6' and python_version < '4.0'",
             "version": "==4.8"
         },
         "setuptools": {
@@ -791,6 +806,14 @@
             ],
             "markers": "python_version >= '3.5'",
             "version": "==1.2.0"
+        },
+        "soupsieve": {
+            "hashes": [
+                "sha256:1a3cca2617c6b38c0343ed661b1fa5de5637f257d4fe22bd9f1338010a1efefb",
+                "sha256:b8d49b1cd4f037c7082a9683dfa1801aa2597fb11c3a1155b7a5b94829b4f1f9"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==2.3.1"
         },
         "sqlalchemy": {
             "hashes": [
@@ -886,7 +909,7 @@
                 "sha256:44ece4d53fb1706f667c9bd1c648f5469a2ec925fcf3a776667042d645472c14",
                 "sha256:aabaf16477806a5e1dd19aa41f8c2b7950dd3c746362d7e3223dbe6de6ac448e"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4.0'",
             "version": "==1.26.9"
         },
         "uvicorn": {

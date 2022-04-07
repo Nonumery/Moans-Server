@@ -3,6 +3,7 @@ from core.gmail import Create_Service
 import base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from bs4 import BeautifulSoup
 
 
 
@@ -47,10 +48,20 @@ def password_recovery(to : str, text : str):
     service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
     
     
-def get_html(platform_os:bool, id:int, name:str):
+def get_html(platform_os:bool, id:int, name:str, desc:str, tags:str):
     a_href = f"intent://open/{id}#Intent;scheme=moans;package=com.example.moans;end"
     if platform_os:
         a_href = f"moans://open/{id}"
+    with open("core/redirect.html", "rt") as html_doc:
+        soup = BeautifulSoup (html_doc, 'html.parser')
+    try:  
+        soup.find(id="name").string = name
+        soup.find(id='desc').string = desc
+        soup.find(id='tags').string = tags
+        soup.find('a')["href"] = a_href
+        return soup
+    except(Exception):
+        return "Error"
     return f"""<!DOCTYPE html>
 <html>
 <h3>{name}</h3>
