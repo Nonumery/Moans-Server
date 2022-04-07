@@ -10,3 +10,4 @@ ACCESS_EXC = HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="N
 EMAIL_EXC = HTTPException(status_code=status.HTTP_306_RESERVED, detail="Email is already used")
 PASS_EXC = HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Wrong password")
 CONFIRM_EXC = HTTPException(status_code=status.HTTP_426_UPGRADE_REQUIRED, detail="Email is not confirmed")
+INPUT_EXC = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect values")

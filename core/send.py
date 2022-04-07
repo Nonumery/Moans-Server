@@ -16,9 +16,9 @@ service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
 
 
 def confirm_email(to : str, text : str):
-    
+    # TODO: change receiver
     sender_address = NOREPLY_EMAIL
-    receiver_address = NOREPLY_EMAIL#to
+    receiver_address = to#NOREPLY_EMAIL#to
     subject = 'Confirm Email Address'
     # Create a text/plain message
     message = MIMEMultipart()
@@ -34,9 +34,9 @@ def confirm_email(to : str, text : str):
     
 
 def password_recovery(to : str, text : str):
-    
+    # TODO: change receiver
     sender_address = NOREPLY_EMAIL
-    receiver_address = to
+    receiver_address = to#NOREPLY_EMAIL#to
     subject = 'Password Recovery'
     # Create a text/plain message
     message = MIMEMultipart()

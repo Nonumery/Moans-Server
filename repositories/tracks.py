@@ -2,6 +2,8 @@ import datetime
 from typing import List, Optional
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm import selectinload, joinedload, load_only
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
+from sqlalchemy import exc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import Table, and_, delete, or_, insert, literal_column, outerjoin, select, func, update, union_all, desc, exists
 from db.tables import LanguageTable, Status, TagTable, TrackTable, UserTable, Voice, trackcheckedtable, tracktagtable, trackseentable
@@ -82,15 +84,22 @@ class TrackRepository:
         return TrackInfo.parse_obj(track_d)
     
     async def get_track_info_by_id(self, session : AsyncSession, id: int) -> Optional[TrackInfo]:
-        query = select(TrackTable).options(selectinload(TrackTable.tags)).filter_by(id=id)
-        track = (await session.execute(query)).scalar_one()
-        track_d = track.__dict__.copy()
-        track_d["tags"] = " ".join(t.__dict__["tag"] for t in track.tags)
-        q = select(func.count()).select_from(select(trackcheckedtable).union_all(select(trackseentable).where(~exists(select(trackcheckedtable).filter_by(track_id = trackseentable.c.track_id,user_id = trackseentable.c.user_id))
+        try:
+            query = select(TrackTable).options(selectinload(TrackTable.tags)).filter_by(id=id)
+            track = (await session.execute(query)).scalar_one()
+            track_d = track.__dict__.copy()
+            track_d["tags"] = " ".join(t.__dict__["tag"] for t in track.tags)
+            q = select(func.count()).select_from(select(trackcheckedtable).union_all(select(trackseentable).where(~exists(select(trackcheckedtable).filter_by(track_id = trackseentable.c.track_id,user_id = trackseentable.c.user_id))
                        ))).filter_by(liked = True, track_id = track.id)
-        likes = (await session.execute(q)).scalar_one()
-        track_d["likes"] = likes
-        return TrackInfo.parse_obj(track_d)
+            likes = (await session.execute(q)).scalar_one()
+            track_d["likes"] = likes
+            return TrackInfo.parse_obj(track_d)
+        except exc.NoResultFound:
+            print(f"Track {id} is not found")
+            return None
+        except Exception as e:
+            print("get_track_info_by_id", type(e))
+            return None
     
     #метод для получения списка языков
     async def all_langs(self, session: AsyncSession, limit: int = 10, skip: int = 0) -> List[Language]:
@@ -101,39 +110,52 @@ class TrackRepository:
     async def get_language(self, session : AsyncSession, language_id : int) -> Optional[LanguageTable]:
         try:
             return (await session.execute(select(LanguageTable).where( LanguageTable.id == language_id ))).scalars().first()
-        except Exception:
+        except Exception as e:
+            print("get_language", type(e))
             return None
         
     async def get_track(self, session : AsyncSession, user_id : int, name : str) -> Optional[TrackTable]:
         try:
             return (await session.execute(select(TrackTable).where( (TrackTable.user_id==user_id) & (TrackTable.name==name) ))).scalars().first()
-        except (Exception):
+        except Exception as e:
+            print("get_track", type(e))
             return None
 
     async def get_track_by_id(self, session : AsyncSession, id : int) -> Optional[TrackTable]:
         try:
-            return (await session.execute(select(TrackTable).filter_by(id=id))).scalar_one()
-        except Exception:
+            track = await session.execute(select(TrackTable).filter_by(id=id))
+            if not track:
+                return None
+            return track.scalar_one()
+        except exc.NoResultFound as e:
+            print(f"Track {id} is not found")
+            return None
+        except Exception as e:
+            print("get_track_by_id", type(e))
             return None
     #метод для получения id пользователя по треку
+    #scalar выдает значение|None, а scalar_one() выдает значение|NoResultFound; в случае наличия нескольких строк в обоих случаях выдается исключение MultipleResultsFound
     async def get_user(self, session : AsyncSession, id: int) -> Optional[int]: 
-        return (await session.execute(select(TrackTable.user_id).filter_by(id=id))).scalar_one()
+        return (await session.execute(select(TrackTable.user_id).filter_by(id=id))).scalar()
     
     async def get_user_track_by_id(self, session : AsyncSession, user_id: int, track_id : int) -> Optional[TrackInfo]:
         try:
             track = (await session.execute(select(TrackTable).filter_by(id=track_id, user_id=user_id))).scalar_one()
             track_d = track.__dict__
             return await self.table_to_model(session, track_d['user_id'], track_d['name'])
-        except Exception:
+        except exc.NoResultFound as e:
+            print(f"Track {track_id} is not found")
             return None
-    #метод для получения id пользователя по треку
-    async def get_user(self, session : AsyncSession, id: int) -> Optional[int]: 
-        return (await session.execute(select(TrackTable.user_id).filter_by(id=id))).scalar_one()
+        except Exception as e:
+            print("get_user_track_by_id", type(e))
+            return None
+
     
     def get_voice(self, voice : int):
         try:
             return Voice(voice)
-        except Exception:
+        except Exception as e:
+            print("get_voice", type(e))
             return None
 
     async def check_track(self, session : AsyncSession, track_id : int, user_id : int, liked : bool = False):
@@ -141,7 +163,11 @@ class TrackRepository:
         try:
             await session.execute(q)
             return True
-        except(Exception):
+        except exc.IntegrityError as e:
+            await session.rollback()
+            return False
+        except Exception as e:
+            print("check_track", type(e))
             await session.rollback()
             return False
     
@@ -152,7 +178,8 @@ class TrackRepository:
             await session.execute(del_q)
             await session.execute(q)
             return True
-        except(Exception):
+        except Exception as e:
+            print("view_track", type(e))
             await session.rollback()
             return False
         
@@ -167,7 +194,8 @@ class TrackRepository:
             await session.execute(i)
             await session.execute(d)
             return True
-        except(Exception):
+        except Exception as e:
+            print("checks_to_views", type(e))
             await session.rollback()
             return False
 
@@ -181,7 +209,8 @@ class TrackRepository:
             else:
                 await session.execute(like_query)
             return True
-        except Exception:
+        except Exception as e:
+            print("like_track", type(e))
             await session.rollback()
             return False
     
@@ -212,7 +241,8 @@ class TrackRepository:
             trackinfo = await self.table_to_model(session, user_id, track.name)
             return trackinfo
         
-        except Exception:
+        except Exception as e:
+            print("create_new_track", type(e))
             await session.rollback()
             return None
     
@@ -238,7 +268,8 @@ class TrackRepository:
             track.tags = tags_list
             track.status = tr.status
             return await self.table_to_model(session, track.user_id, track.name)       
-        except Exception:
+        except Exception as e:
+            print("update_track", type(e))
             await session.rollback()
             return None
 
@@ -250,7 +281,8 @@ class TrackRepository:
             track = (await session.execute(query)).scalar_one()
             track.status = status
             return await self.table_to_model(session, track.user_id, track.name)
-        except Exception:
+        except Exception as e:
+            print("update_status", type(e))
             await session.rollback()
             return None
     
@@ -322,5 +354,6 @@ class TrackRepository:
             track = await self.get_track_by_id(session, id)
             await session.delete(track)
             return True
-        except(Exception):
+        except Exception as e:
+            print("delete_track", type(e))
             return False

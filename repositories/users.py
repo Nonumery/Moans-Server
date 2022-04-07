@@ -64,6 +64,7 @@ class UserRepository():
             result = (await session.execute(select(UserTable).where(UserTable.id==id))).scalars().first()
             await session.delete(result)
             return True
-        except(Exception):
+        except Exception as e:
+            print("get_track_info_by_id", type(e))
             return False
     

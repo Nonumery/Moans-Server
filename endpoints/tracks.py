@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Header, Request, status, UploadFile, Fil
 from fastapi.responses import Response, HTMLResponse
 from httpx import URL
 from core.config import AUDIO_FORMAT, MEDIA_FORMAT, IMAGE_FORMAT
-from core.errors import ACCESS_EXC, CONFIRM_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
+from core.errors import ACCESS_EXC, CONFIRM_EXC, INPUT_EXC, LANG_EXC, NAME_EXC, RECORD_EXC
 from core.send import get_html
 from db.tables import Status, Voice
 from models.users import User
@@ -12,6 +12,7 @@ from repositories.tracks import TrackRepository
 from .depends import get_current_user, get_session, get_track_repository, get_user_repository
 from models.tracks import Language, TrackIn, TrackInfo, UserTrack
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import exc
 import shutil
 import os
 
@@ -51,7 +52,8 @@ async def add_new_track(
         with open(f'{user_folder}/{tr_name}.{AUDIO_FORMAT}', "wb") as buffer:
             shutil.copyfileobj(record.file, buffer)
             path = f'{user_folder}/{tr_name}.{AUDIO_FORMAT}'
-    except(Exception):
+    except Exception as e:
+        print("add_new_track", type(e))
         raise RECORD_EXC
     track = await tracks.create_new_track(session=session, user_id = int(current_user.id), path=path, tr=tr, tags_string=tag)
     if track is None:
@@ -106,7 +108,11 @@ async def get_unchecked_tracks(
     try:
         tracks = await tracks.get_track_feed(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, limit=limit, skip=skip)
         return tracks
-    except(Exception):
+    except exc.DBAPIError as e:
+        #ошибка из-за некорректного ввода limit и skip
+        raise ACCESS_EXC    
+    except Exception as e:
+        print("get_unchecked_tracks", type(e))
         raise ACCESS_EXC
 
 @router.get("/refresh")
@@ -120,11 +126,12 @@ async def refresh_track_list(
     try:
         tracks = await tracks.checks_to_views(session=session, user_id=int(current_user.id))
         return tracks
-    except(Exception):
+    except Exception as e:
+        print("refresh_track_list", type(e))
         raise ACCESS_EXC
 
 @router.get("/track/", response_model=TrackInfo, response_model_exclude=["path", "likes"])
-async def get_track_info(
+async def get_my_track_info(
     track_id: int,
     tracks : TrackRepository = Depends(get_track_repository),
     current_user : User = Depends(get_current_user),
@@ -146,6 +153,8 @@ async def get_user_tracks(
     skip: int = 0):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
+    if limit < 0 or skip < 0:
+        raise INPUT_EXC
     return await tracks.get_user_tracks(session=session, user_id=int(current_user.id), limit=limit, skip=skip)
 
 @router.get("/track", response_model=TrackInfo, response_model_exclude=["path", "status", "voice", "language_id"])
@@ -170,6 +179,8 @@ async def get_checked_tracks(
     skip: int = 0):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
+    if limit < 0 or skip < 0:
+        raise INPUT_EXC
     return await tracks.get_track_seen(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, limit=limit, skip=skip)
 
 @router.get("/liked", response_model=List[TrackInfo], response_model_exclude=["path", "status", "voice", "language_id"])
@@ -181,6 +192,8 @@ async def get_liked_tracks(
     skip: int = 0):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
+    if limit < 0 or skip < 0:
+        raise INPUT_EXC
     return await tracks.get_track_liked(session=session, user_id=int(current_user.id), limit=limit, skip=skip)
 
 @router.get("/with_tags", response_model=List[TrackInfo], response_model_exclude=["path", "status", "voice", "language_id"])
@@ -195,6 +208,8 @@ async def get_tracks_with_tags(
     skip: int = 0):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
+    if limit < 0 or skip < 0:
+        raise INPUT_EXC
     return await tracks.get_track_feed_with_tags(session=session, user_id=int(current_user.id), language_id=language_id, voice=voice, tags=tags, limit=limit, skip=skip)
 
 @router.get("/with_audio")
@@ -206,7 +221,7 @@ async def get_track_with(
     track = await tracks.get_track_by_id(session, track_id)
     if track is None:
         return {'Error':'Track is not found'}
-    headers = { "track":track.json(), }
+    headers = { "track":str(track.__dict__), }
     with open(track.path, "rb") as audio:
         data = audio.read()
     return Response(data, headers=headers, media_type=MEDIA_FORMAT)
@@ -221,7 +236,7 @@ async def get_track_audio(
     ):
     track = await tracks.get_track_by_id(session, track_id)
     if track is None: 
-        raise NAME_EXC
+        raise ACCESS_EXC
     with open(track.path, "rb") as audio:
         filesize = str(os.stat(track.path).st_size)
         try:
@@ -244,7 +259,10 @@ async def get_track_audio(
                 'Accept-Ranges': 'bytes'
                     }
             return Response(data, status_code=206, headers=headers, media_type=MEDIA_FORMAT)#StreamingResponse
-        except(Exception):
+        except ValueError as e:
+            raise INPUT_EXC
+        except Exception as e:
+            print("get_track_audio", type(e))
             raise ACCESS_EXC
 
 @router.delete("/")
@@ -257,7 +275,7 @@ async def delete_current_track(
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
     track = await tracks.get_track_by_id(session=session, id=track_id)
-    if track.user_id is None or track.user_id != int(current_user.id):
+    if track is None or track.user_id is None or track.user_id != int(current_user.id):
         raise ACCESS_EXC
     os.remove(track.path)
     return await tracks.delete_track(session=session, id=track_id)
@@ -272,12 +290,14 @@ async def check_track(
     ):
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
+    if (await tracks.get_user(session, id=track_id)) == int(current_user.id):
+        raise ACCESS_EXC # или владелец трека пытается чекнуть свой же трек, или такого трека не существует
     result = await tracks.check_track(session=session, track_id=track_id, user_id=int(current_user.id))
     if not result:
-        raise ACCESS_EXC
+        raise ACCESS_EXC#TODO: Сделать исключение Track is not found
     return result
 
-@router.patch("/set_track_status", response_model=TrackInfo, response_model_exclude=["path", "status", "voice", "language_id"])
+@router.patch("/set_track_status", response_model=TrackInfo, response_model_exclude=["path", "voice", "language_id"])
 async def set_status(
     track_id: int = Form(...),
     track_status : Status = Form(...),
@@ -289,9 +309,9 @@ async def set_status(
         raise CONFIRM_EXC
     track = await tracks.get_track_by_id(session, track_id)
     if track is None or track.user_id != int(current_user.id):
-        raise ACCESS_EXC
+        raise ACCESS_EXC#TODO: Сделать исключение Track is not found
     if (int(track_status.value) > int(Status.publish) or int(track.__dict__["status"]) > int(Status.publish)):
-        raise ACCESS_EXC
+        raise ACCESS_EXC# запрет на переключение статуса трека на заблокированный и удаленный; нет доступа
     return await tracks.update_status(session=session, id=track_id, status=track_status)
 
 @router.patch("/like")
@@ -305,7 +325,7 @@ async def like_track(
     if current_user.email_confirm == False:
         raise CONFIRM_EXC
     if (await tracks.get_user(session, id=track_id)) == int(current_user.id):
-        raise ACCESS_EXC
+        raise ACCESS_EXC # или владелец трека пытается поставить лайк, или такого трека не существует
     result = await tracks.like_track(session=session, track_id=track_id, user_id=int(current_user.id), liked=liked)
     if not result:
         raise ACCESS_EXC
@@ -321,6 +341,8 @@ async def get_app_logo():
 async def get_track_or_install(id : int, request: Request, tracks : TrackRepository = Depends(get_track_repository), session : AsyncSession = Depends(get_session)):
     d = request.headers['User-Agent']
     track = await tracks.get_track_info_by_id(session, id)
+    if not track:
+        raise ACCESS_EXC
     ios = "iPhone OS" in d
     content = get_html(ios, id, track.name, track.description, track.tags)
     return HTMLResponse(content=content, status_code=200)
