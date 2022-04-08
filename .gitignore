@@ -8,5 +8,8 @@ install.bat
 intall_.bat
 main.bat
 __pycache__
+endpoints/__pycache__
+models/__pycache__
+core/__pycache__
 credentials.json
 token_gmail_v1.pickle
