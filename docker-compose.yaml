@@ -10,3 +10,18 @@ services:
       POSTGRES_USER:  root
       POSTGRES_PASSWORD:  root
       POSTGRES_DB: moans_db
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8000:8000
+    volumes:
+      - ./data:/var/lib/app/moans_data
+    environment:
+      - MOANS_DATABASE_URL=postgresql+asyncpg://root:root@db/moans_db
+      - RELAY_KEY=2575d9c0-46e7-4e67-af78-9b047efc3487
+      - RELAY_SECRET=wXhPHGMg76y2
+    depends_on:
+      - db

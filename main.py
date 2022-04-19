@@ -61,7 +61,7 @@ cli = typer.Typer()
 def db_init_models():
     asyncio.run(init_models())
     print("Done")
-    uvicorn.run("main:app", port = 8000, host="127.0.0.1", reload=True)
+    uvicorn.run("main:app", port = 8000, host="0.0.0.0", reload=True)
 
 
 
