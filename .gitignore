@@ -12,4 +12,4 @@ token_gmail_v1.pickle
 __pycache__
 Pipfile.lock
 Pipfile
-assetlinks.json
+.well-known
