@@ -12,18 +12,21 @@ from models.trackchecked import TrackChecked
 from models.tracks import Language, Track, TrackIn, TrackInfo, UserTrack
 
 class TrackRepository:
+    # метод для получения информации о треках 
     def get_select_track(self, user_id : int, language_id: int, voice : Voice, status: Status, unseen : bool = True, unchecked : bool = True)->select:
-        s =  select(
-                TrackTable.id, 
-                   TrackTable.name, 
-                   TrackTable.description, 
-                   TrackTable.path, 
-                   func.string_agg(TagTable.tag, aggregate_order_by(literal_column("' '"), TagTable.tag)).label("tags"), 
-                   select(func.count()).select_from(select(trackcheckedtable).union_all(select(trackseentable).where(~exists(select(trackcheckedtable).filter_by(track_id = trackseentable.c.track_id,user_id = trackseentable.c.user_id))
-                       ))).filter_by(liked = True, track_id = TrackTable.id).label("likes"),
-                   select(trackcheckedtable.c.liked).filter_by(track_id=TrackTable.id, user_id=user_id, liked=True
-                    ).union_all(select(trackseentable.c.liked).filter_by(track_id=TrackTable.id, user_id=user_id, liked=True)).limit(1).label("liked")
-                   ).outerjoin(TagTable, TrackTable.tags).where(
+        s =  select(TrackTable.id, TrackTable.name, TrackTable.description, TrackTable.path,    # выбор id, наименования, описания, пути
+        
+        func.string_agg(TagTable.tag, aggregate_order_by(literal_column("' '"), TagTable.tag)).label("tags"), # списка тегов
+        
+        select(func.count()).select_from(select(trackcheckedtable).union_all(select(trackseentable)
+                        .where(~exists(select(trackcheckedtable).filter_by(track_id = trackseentable.c.track_id,user_id = trackseentable.c.user_id)))))
+                        .filter_by(liked = True, track_id = TrackTable.id).label("likes"), # количества лайков
+                        
+        select(trackcheckedtable.c.liked).filter_by(track_id=TrackTable.id, user_id=user_id, liked=True)
+                        .union_all(select(trackseentable.c.liked)
+                        .filter_by(track_id=TrackTable.id, user_id=user_id, liked=True)).limit(1).label("liked")
+                   
+        ).outerjoin(TagTable, TrackTable.tags).where(
                     (TrackTable.id.in_(select(trackseentable.c.track_id).filter_by(user_id=user_id))!=unseen
                      )   
                     &(TrackTable.id.in_(select(trackcheckedtable.c.track_id).filter_by(user_id=user_id))!=unchecked
