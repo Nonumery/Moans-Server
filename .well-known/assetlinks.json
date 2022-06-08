@@ -1,9 +1,0 @@
-[{
-    "relation":["delegate_permission/common.handle_all_urls"],
-    "target":{
-        "namespace":"android_app",
-        "package_name":"com.example.moans",
-        "sha256_cert_fingerprints":["19:20:e5:cf:38:a1:4d:a0:12:4f:57:11:94:04:d0:9f:7d:ee:77:2f:97:e5:c6:24:48:d6:a7:09:51:28:75:87"]
-    }
-    
-}]
