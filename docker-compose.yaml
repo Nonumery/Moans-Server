@@ -7,14 +7,14 @@ services:
     volumes:
       - ./data:/var/lib/postgresql/moans_data
     environment:
-      POSTGRES_USER:  root
-      POSTGRES_PASSWORD:  root
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
       POSTGRES_DB: moans_db
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     ports:
       - 8000:8000
     volumes:
