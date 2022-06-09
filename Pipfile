@@ -25,6 +25,7 @@ google-auth-httplib2 = "*"
 google-auth-oauthlib = "*"
 bs4 = "*"
 alembic = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 autopep8 = "*"
