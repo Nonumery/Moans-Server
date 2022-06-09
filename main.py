@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 from fastapi import Depends, FastAPI, Request, Response, staticfiles, status
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from httpcore import URL
 from pytest import Session
@@ -32,23 +33,42 @@ async def init_models():
         except(Exception):
             print("Already exists")
 
-app = FastAPI(title="Moans Server")
+app = FastAPI(title="Moans Server",
+              #   docs_url=None, redoc_url=None
+              )
 app.include_router(router=users.router, prefix="/users", tags=["users"])
 app.include_router(router=auth.router, prefix="/auth", tags=["auth"])
 app.include_router(router=tracks.router, prefix="/tracks", tags=["tracks"])
 #app.include_router(router=wellknown.router, prefix="/.well-known", tags=["well-known"])
-# app.mount("/resources",
-#           staticfiles.StaticFiles(directory="resources"), name="resources")
+app.mount("/resources",
+          staticfiles.StaticFiles(directory="resources"), name="resources")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse('resources/logo.ico')
+    return FileResponse('resources/logo.png')
+
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_ui_html(req: Request) -> HTMLResponse:
+    root_path = req.scope.get("root_path", "").rstrip("/")
+    openapi_url = root_path + app.openapi_url
+    oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
+    if oauth2_redirect_url:
+        oauth2_redirect_url = root_path + oauth2_redirect_url
+    return get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=oauth2_redirect_url,
+        init_oauth=app.swagger_ui_init_oauth,
+        swagger_favicon_url="/favicon.ico",
+        swagger_ui_parameters=app.swagger_ui_parameters)
 
 
 @app.get("/", include_in_schema=False)
 def main():
-    return {"status": "ok"}
+    # return {"status": "ok"}
+    return RedirectResponse("/docs")
 # app.mount("/tracks_", staticfiles.StaticFiles(directory="tracks"), name="tracks")
 
 # @app.get("/audios")
