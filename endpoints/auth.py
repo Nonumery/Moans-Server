@@ -12,11 +12,12 @@ import json
 
 router = APIRouter()
 
+
 @router.post("/", response_model=Token)
 async def login(
-    login: Login,
-    users: UserRepository = Depends(get_user_repository),
-    session: AsyncSession = Depends(get_session)):
+        login: Login,
+        users: UserRepository = Depends(get_user_repository),
+        session: AsyncSession = Depends(get_session)):
     user = await users.get_user_by_email(session, login.email)
     if user is None or not verify_password(login.password, user.hash_password):
         raise AUTH_EXC
@@ -26,22 +27,27 @@ async def login(
         access_token=create_access_token({"sub": user.email}),
         token_type="Bearer"
     )
-    
-@router.post("/google")
-async def auth_user(
-    request: Request,
-    users: UserRepository = Depends(get_user_repository),
-    session : AsyncSession = Depends(get_session)):
-    f = json.loads((await request.body()).decode('utf-8'))
-    email = None
-    password = f['id_token']
+
+
+async def _get_email(id_token: str) -> str | None:
     async with httpx.AsyncClient() as client:
-        response = await client.get(OATH_GOOGLE_URL+str(password))
+        response = await client.get(f'{OATH_GOOGLE_URL}{id_token}')
         response = response.json()
         if (response['azp'] == CLIENT_ID):
-            email = response['email']
+            return response['email']
+
+
+@router.post("/google")
+async def auth_user(
+        request: Request,
+        users: UserRepository = Depends(get_user_repository),
+        session: AsyncSession = Depends(get_session)):
+    info = json.loads((await request.body()).decode('utf-8'))
+    email = None
+    password = info['id_token']
+    email = await _get_email(str(password))
     if email:
-        token = create_access_token({"sub": email})       
+        token = create_access_token({"sub": email})
         c_user = await users.get_user_by_email(session, email)
         if not c_user:
             c_user = await users.add_user(session=session, email=email, password=password, update_token=token, email_confirm=True)
@@ -52,4 +58,4 @@ async def auth_user(
         return Token(
             access_token=token,
             token_type="Bearer"
-    )
+        )
