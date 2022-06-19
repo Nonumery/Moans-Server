@@ -1,6 +1,7 @@
 from fastapi import Depends
 from core.errors import CRED_EXC
 from core.security import JWTBearer, decode_access_token
+from models.token import Tokens
 from models.users import User
 from repositories.tracks import TrackRepository
 from repositories.users import UserRepository
@@ -13,16 +14,16 @@ async def get_session() -> AsyncSession:
         yield session
         await session.commit()
 
+
 def get_user_repository() -> UserRepository:
     return UserRepository()
 
 
-
 async def get_current_user(
     users: UserRepository = Depends(get_user_repository),
-    session : AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
     token: str = Depends(JWTBearer())
-    ) -> User:
+) -> User:
     payload = decode_access_token(token)
     if payload is None:
         raise CRED_EXC
@@ -37,7 +38,7 @@ async def get_current_user(
 
 def get_user_email(
     token: str = Depends(JWTBearer())
-    ) -> str:
+) -> str:
     payload = decode_access_token(token)
     if payload is None:
         raise CRED_EXC
@@ -46,8 +47,6 @@ def get_user_email(
         raise CRED_EXC
     return email
 
+
 def get_track_repository() -> TrackRepository:
     return TrackRepository()
-
-
-    

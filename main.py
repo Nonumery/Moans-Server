@@ -6,7 +6,6 @@ from fastapi import Depends, FastAPI, Request, Response, staticfiles, status
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from httpcore import URL
-from pytest import Session
 import uvicorn
 from core.config import IMAGE_FORMAT, INSTALL_APP
 from db.tables import Base, engine, LanguageTable
